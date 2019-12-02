@@ -59,6 +59,7 @@ from tensorflow.python.framework import importer
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import nest
+import wandb
 
 
 _DEFAULT_NUM_BATCHES = 100
@@ -886,6 +887,7 @@ def benchmark_one_step(sess,
         step + 1,
         get_perf_timing_str(speed_mean, speed_uncertainty, speed_jitter),
         LOSS_AND_ACCURACY_DIGITS_TO_SHOW, lossval)
+    wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
     if 'top_1_accuracy' in results:
       log_str += '\t%.*f\t%.*f' % (
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_1_accuracy'],
@@ -2510,6 +2512,7 @@ class BenchmarkCNN(object):
     num_epochs_ran = (python_global_step * self.batch_size /
                       self.dataset.num_examples_per_epoch('train'))
     mlperf.logger.log_train_epochs(num_epochs_ran)
+    wandb.log({"total_images_per_sec": images_per_sec})
     if image_producer is not None:
       image_producer.done()
     if eval_image_producer is not None:
@@ -3517,6 +3520,9 @@ def setup(params):
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
 
+  if hvd.rank()!=0:
+      os.environ['WANDB_MODE'] = 'dryrun'
+  wandb.init(config=params._asdict(), sync_tensorboard=True)
   platforms_util.initialize(params, create_config_proto(params))
 
   if not params.job_name:
