@@ -3522,7 +3522,8 @@ def setup(params):
 
   if hvd.rank()!=0:
       os.environ['WANDB_MODE'] = 'dryrun'
-  wandb.init(config=params._asdict(), sync_tensorboard=True)
+  wandb.init(config=params._asdict())
+  wandb.tensorboard.patch(save=False)
   platforms_util.initialize(params, create_config_proto(params))
 
   if not params.job_name:
