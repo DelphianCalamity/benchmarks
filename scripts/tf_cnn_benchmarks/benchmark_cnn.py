@@ -673,6 +673,12 @@ flags.DEFINE_string('benchmark_test_id', None,
                     'consumption, and does not have any impact within the '
                     'system.')
 
+flags.DEFINE_boolean('custom_learning_rate_schedule', False,
+                     'linearly increase to 0.4 until 5 epochs, then decrease linearly to 0 until the end')
+
+flags.DEFINE_boolean('cosine_learning_rate_schedule', False,
+                     'decrease from init_learning_rate to 0 with cosine wave')
+
 platforms_util.define_platform_params()
 
 
@@ -1157,7 +1163,7 @@ def get_piecewise_learning_rate(piecewise_learning_rate_schedule,
 
 
 def get_learning_rate(params, global_step, num_examples_per_epoch, model,
-                      batch_size):
+                      batch_size, num_workers):
   """Returns a learning rate tensor based on global_step.
 
   Args:
@@ -1179,7 +1185,23 @@ def get_learning_rate(params, global_step, num_examples_per_epoch, model,
   with tf.name_scope('learning_rate'):
     num_batches_per_epoch = num_examples_per_epoch / batch_size
 
-    if params.piecewise_learning_rate_schedule:
+    if params.custom_learning_rate_schedule:
+      # linearly increase to 0.4 until 5 epochs, then decrease linearly to 0 until the end
+      warmup_steps = int(num_batches_per_epoch * 5)
+      warmup_lr = 0.4 * tf.cast(global_step, tf.float32) / tf.cast(warmup_steps, tf.float32)
+      total_num_steps, _ = get_num_batches_and_epochs(params, global_batch_size, num_examples_per_epoch)
+      slope = tf.cast(global_step - warmup_steps, tf.float32) / tf.cast(total_num_steps - warmup_steps, tf.float32)
+      lr = 0.4 * (1. - slope)
+      learning_rate = tf.cond(global_step < warmup_steps,
+                              lambda: warmup_lr, lambda: lr)
+    elif params.cosine_learning_rate_schedule:
+      # decrease from init_learning_rate to 0 with cosine wave
+      _, num_epochs = get_num_batches_and_epochs(params, global_batch_size, num_examples_per_epoch)
+      rescaled_lr = params.init_learning_rate * num_workers * (batch_size / 256.0)
+      num_decay_steps = (num_examples_per_epoch // global_batch_size) * num_epochs
+      lr = tf.train.cosine_decay(rescaled_lr, global_step, num_decay_steps)
+
+    elif params.piecewise_learning_rate_schedule:
       if (params.init_learning_rate is not None or
           params.learning_rate_decay_factor or
           params.minimum_learning_rate or params.num_epochs_per_decay):
@@ -2929,7 +2951,7 @@ class BenchmarkCNN(object):
       with tf.device(self.cpu_device):
         learning_rate = get_learning_rate(self.params, global_step,
                                           self.dataset.num_examples_per_epoch(),
-                                          self.model, examples_per_step)
+                                          self.model, examples_per_step, self.num_workers)
 
     training_ops = []
     for d, device in enumerate(apply_gradient_devices):
@@ -2945,7 +2967,7 @@ class BenchmarkCNN(object):
           # `apply_gradient_devices`.
           learning_rate = get_learning_rate(
               self.params, global_step, self.dataset.num_examples_per_epoch(),
-              self.model, examples_per_step)
+              self.model, examples_per_step, self.num_workers)
         gradient_clip = self.params.gradient_clip
         if gradient_clip is not None:
           with tf.name_scope('clip_gradients'):
