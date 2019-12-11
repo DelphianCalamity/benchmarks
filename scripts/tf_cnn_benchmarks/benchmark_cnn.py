@@ -1189,17 +1189,17 @@ def get_learning_rate(params, global_step, num_examples_per_epoch, model,
       # linearly increase to 0.4 until 5 epochs, then decrease linearly to 0 until the end
       warmup_steps = int(num_batches_per_epoch * 5)
       warmup_lr = 0.4 * tf.cast(global_step, tf.float32) / tf.cast(warmup_steps, tf.float32)
-      total_num_steps, _ = get_num_batches_and_epochs(params, global_batch_size, num_examples_per_epoch)
+      total_num_steps, _ = get_num_batches_and_epochs(params, batch_size, num_examples_per_epoch)
       slope = tf.cast(global_step - warmup_steps, tf.float32) / tf.cast(total_num_steps - warmup_steps, tf.float32)
       lr = 0.4 * (1. - slope)
       learning_rate = tf.cond(global_step < warmup_steps,
                               lambda: warmup_lr, lambda: lr)
     elif params.cosine_learning_rate_schedule:
       # decrease from init_learning_rate to 0 with cosine wave
-      _, num_epochs = get_num_batches_and_epochs(params, global_batch_size, num_examples_per_epoch)
-      rescaled_lr = params.init_learning_rate * num_workers * (batch_size / 256.0)
-      num_decay_steps = (num_examples_per_epoch // global_batch_size) * num_epochs
-      lr = tf.train.cosine_decay(rescaled_lr, global_step, num_decay_steps)
+      total_num_steps, _ = get_num_batches_and_epochs(params, batch_size, num_examples_per_epoch)
+      rescaled_lr = params.init_learning_rate * (batch_size / 256.0)
+      # num_decay_steps = (num_examples_per_epoch // batch_size) * num_epochs
+      learning_rate = tf.train.cosine_decay(rescaled_lr, global_step, total_num_steps)
 
     elif params.piecewise_learning_rate_schedule:
       if (params.init_learning_rate is not None or
@@ -1235,7 +1235,7 @@ def get_learning_rate(params, global_step, num_examples_per_epoch, model,
         params.piecewise_learning_rate_schedule):
       warmup_steps = int(num_batches_per_epoch *
                          params.num_learning_rate_warmup_epochs)
-      init_lr = params.init_learning_rate
+      init_lr = params.init_learning_rate * (batch_size / 256.0) if params.cosine_learning_rate_schedule else params.init_learning_rate
       if init_lr is None:
         init_lr = float(params.piecewise_learning_rate_schedule.split(';')[0])
       warmup_lr = init_lr * tf.cast(global_step, tf.float32) / tf.cast(
@@ -1246,7 +1246,6 @@ def get_learning_rate(params, global_step, num_examples_per_epoch, model,
     learning_rate = mlperf.logger.log_deferred_tensor_value(
         mlperf.tags.OPT_LR, learning_rate, global_step, every_n=100)
   return learning_rate
-
 
 def get_optimizer(params, learning_rate):
   """Returns the optimizer that should be used based on params."""
@@ -3568,3 +3567,4 @@ def maybe_compile(computation, params):
     return tf.xla.experimental.compile(computation)
   else:
     return computation()
+
