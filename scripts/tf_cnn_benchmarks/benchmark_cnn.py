@@ -3542,8 +3542,12 @@ def setup(params):
     hvd.init()
 
   if hvd.rank()!=0:
-      os.environ['WANDB_MODE'] = 'dryrun'
-  wandb.init(config=params._asdict())
+    os.environ['WANDB_MODE'] = 'dryrun'
+  wandb_id = os.environ.get('WANDB_ID', None)
+  if wandb_id is None:
+    wandb.init(config=params._asdict())
+  else:
+    wandb.init(config=params._asdict(), id=f"{wandb_id}{hvd.rank()}")
   wandb.tensorboard.patch(save=False)
   platforms_util.initialize(params, create_config_proto(params))
 
