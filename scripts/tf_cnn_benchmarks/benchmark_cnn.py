@@ -3548,6 +3548,7 @@ def setup(params):
     wandb.init(config=params._asdict())
   else:
     wandb.init(config=params._asdict(), id=f"{wandb_id}{hvd.rank()}")
+  wandb.config.update({'SLURM_JOB_ID': os.environ.get('SLURM_JOB_ID', None)})
   wandb.tensorboard.patch(save=False)
   platforms_util.initialize(params, create_config_proto(params))
 
