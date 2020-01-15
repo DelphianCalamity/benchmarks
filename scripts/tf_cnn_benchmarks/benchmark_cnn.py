@@ -3195,7 +3195,9 @@ class BenchmarkCNN(object):
         for i in range(len(input_list))
     ]
 
+    print_once = True
     def forward_pass_and_gradients():
+      global print_once
       """Builds forward pass and gradient computation network.
 
       When phase_train=True and print_training_accuracy=False:
@@ -3289,6 +3291,12 @@ class BenchmarkCNN(object):
           horovod_device = '/%s:0' % self.params.horovod_device
         else:
           horovod_device = ''
+        
+        # Print number of tensors for once
+        if print_once:
+          print(f"==Debug== The model has {len(grads)} gradient tensors")
+          print_once = False
+                
         # All-reduce gradients using Horovod.
         grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device)
                  for grad in grads]
