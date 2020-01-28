@@ -2908,7 +2908,7 @@ class BenchmarkCNN(object):
       mlperf.logger.log(key=mlperf.tags.INPUT_BN_SPAN,
                         value=self.batch_size // len(self.raw_devices))
 
-    if 'memory_op' in results:
+    if 'memory_ops' in results:
         update_ops = update_ops + results['memory_ops']
         print("memory_op print:", results['memory_ops'])
     #print("update_ops print:", update_ops)
