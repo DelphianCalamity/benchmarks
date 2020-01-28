@@ -2908,6 +2908,10 @@ class BenchmarkCNN(object):
       mlperf.logger.log(key=mlperf.tags.INPUT_BN_SPAN,
                         value=self.batch_size // len(self.raw_devices))
 
+    if 'memory_op' in results:
+        update_ops = update_ops + results['memory_ops']
+        print("memory_op print:", results['memory_ops'])
+    #print("update_ops print:", update_ops)
     fetches = self._build_fetches(global_step, all_logits, losses, device_grads,
                                   enqueue_ops, update_ops, all_accuracy_ops,
                                   phase_train)
@@ -3298,8 +3302,15 @@ class BenchmarkCNN(object):
           #print_once = False
                 
         # All-reduce gradients using Horovod.
-        grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device)
-                 for grad in grads]
+        #grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device)
+        #         for grad in grads]
+        new_grads = []
+        memory_ops = []
+        for grad in grads:
+            new_grad, memory_update_op = hvd.allreduce(grad, average=False, device_dense=horovod_device)
+            new_grads.append(new_grad)
+            memory_ops.append(memory_update_op)
+        grads = new_grads
 
       if self.params.staged_vars:
         grad_dtypes = [grad.dtype for grad in grads]
@@ -3319,9 +3330,9 @@ class BenchmarkCNN(object):
         loss = base_loss
 
       if self.params.print_training_accuracy:
-        return [logits, loss] + grads
+        return [logits, loss] + grads + [memory_ops]
       else:
-        return [loss] + grads
+        return [loss] + grads + [memory_ops]
 
     def unpack_forward_pass_and_gradients_output(forward_pass_and_grad_outputs):
       """Unpacks outputs from forward_pass_and_gradients.
@@ -3346,13 +3357,19 @@ class BenchmarkCNN(object):
       loss = (
           forward_pass_and_grad_outputs[0]
           if forward_pass_and_grad_outputs else None)
+      # grads = (
+      # forward_pass_and_grad_outputs[1:]
+      # if forward_pass_and_grad_outputs else None)
       grads = (
-          forward_pass_and_grad_outputs[1:]
+          forward_pass_and_grad_outputs[1:-1]
+          if forward_pass_and_grad_outputs else None)
+      memory_ops = (
+          forward_pass_and_grad_outputs[-1:][0]
           if forward_pass_and_grad_outputs else None)
 
-      return logits, loss, grads
+      return logits, loss, grads, memory_ops
 
-    def make_results(logits, loss, grads):
+    def make_results(logits, loss, grads, memory_ops):
       """Generate results based on logits, loss and grads."""
       results = {}  # The return value
 
@@ -3369,13 +3386,15 @@ class BenchmarkCNN(object):
         param_refs = self.variable_mgr.trainable_variables_on_device(
             rel_device_num, abs_device_num, writable=True)
         results['gradvars'] = list(zip(grads, param_refs))
+      if memory_ops is not None:
+        results['memory_ops'] = memory_ops
 
       return results
 
     with tf.device(self.devices[rel_device_num]):
       outputs = maybe_compile(forward_pass_and_gradients, self.params)
-      logits, loss, grads = unpack_forward_pass_and_gradients_output(outputs)
-      return make_results(logits, loss, grads)
+      logits, loss, grads, memory_ops = unpack_forward_pass_and_gradients_output(outputs)
+      return make_results(logits, loss, grads, memory_ops)
 
   def get_input_preprocessor(self):
     """Returns the image preprocessor to used, based on the model.
