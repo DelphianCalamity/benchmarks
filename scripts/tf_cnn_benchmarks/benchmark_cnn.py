@@ -718,7 +718,7 @@ flags.DEFINE_integer('bloom_size', None,
 flags.DEFINE_integer('hash_functions', None,
                     'number of hash functions in case of bloom_topk compression method')
 
-flags.DEFINE_integer('bloom_verbosity', None,
+flags.DEFINE_integer('bloom_verbosity', 0,
                     'bloom filter operators logging frequency')
 
 platforms_util.define_platform_params()
