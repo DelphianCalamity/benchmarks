@@ -712,13 +712,13 @@ flags.DEFINE_boolean('horovod_debug', False,
 flags.DEFINE_string('compression_device', '',
                     'set the device(/device:GPU:0,/device:GPU:1,/device:CPU:0) to run compression and decompression')
 
-flags.DEFINE_integer('bloom_size', 10000,
+flags.DEFINE_integer('bloom_size', None,
                      'Size of bloom filter in case of bloom_topk compression method')
 
-flags.DEFINE_integer('hash_functions', 4,
+flags.DEFINE_integer('hash_functions', None,
                     'number of hash functions in case of bloom_topk compression method')
 
-flags.DEFINE_integer('bloom_verbosity', 4000,
+flags.DEFINE_integer('bloom_verbosity', None,
                     'bloom filter operators logging frequency')
 
 platforms_util.define_platform_params()
