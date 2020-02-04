@@ -37,7 +37,7 @@ import numpy as np
 
 import six
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # pylint: disable=g-direct-tensorflow-import
 import cnn_util
@@ -673,6 +673,54 @@ flags.DEFINE_string('benchmark_test_id', None,
                     'consumption, and does not have any impact within the '
                     'system.')
 
+### Ahmed - extra parameters for specifing the communication and compression methods
+# used in general framework based on horovod for compression
+# Default is using allreduce with no compression
+
+flags.DEFINE_enum('horovod_comm_method', 'allreduce',
+                  ('allreduce', 'broadcast', 'centralized', 'allgather'),
+                  'The method for communicating the variables used in hororvod: allreduce, '
+                  'broadcast, centralized, allgather')
+
+flags.DEFINE_enum('horovod_compress_method', 'none',
+                  ('none', 'fp16', 'randomk', 'topk', 'threshold', 'terngrad', 'qsgd', 'dgc', 'adaq',
+                   'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom_topk'),
+                  'The method for compressing the variables used in hororvod: none, '
+                  'randomk, topk, threshold')
+
+flags.DEFINE_boolean('horovod_compress_memory', False, 'Whether to use memory for compression method')
+
+flags.DEFINE_boolean('horovod_compress_state', True, 'Whether to perform actual compression or not')
+
+flags.DEFINE_boolean('horovod_memory_debug', False, 'Whether to perform memory debug or not')
+
+flags.DEFINE_boolean('horovod_gradient_clipping', False,
+                     'Whether to use gradient clipping before apply the compression')
+
+flags.DEFINE_float('horovod_compress_ratio', 0.7,
+                   'Set the sparsification ratio')
+
+flags.DEFINE_float('horovod_threshold_val', 0.0001,
+                   'Set the threshold value')
+
+flags.DEFINE_integer('horovod_quantum_number', 256,
+                   'Set the quantum states for QSGD, default 256 states, minmum 1 state')
+
+flags.DEFINE_boolean('horovod_debug', False,
+                     'Whether to print out tensor size before communication')
+
+flags.DEFINE_string('compression_device', '',
+                    'set the device(/device:GPU:0,/device:GPU:1,/device:CPU:0) to run compression and decompression')
+
+flags.DEFINE_integer('bloom_size', 10000,
+                     'Size of bloom filter in case of bloom_topk compression method')
+
+flags.DEFINE_integer('hash_functions', 4,
+                    'number of hash functions in case of bloom_topk compression method')
+
+flags.DEFINE_integer('verbosity', 4000,
+                    'bloom filter operators logging frequency')
+
 platforms_util.define_platform_params()
 
 
@@ -744,9 +792,11 @@ def create_config_proto(params):
     config.intra_op_parallelism_threads = params.num_intra_threads
   config.inter_op_parallelism_threads = params.num_inter_threads
   config.experimental.collective_group_leader = '/job:worker/replica:0/task:0'
-  config.gpu_options.experimental.collective_ring_order = params.gpu_indices
+  # no longer exists?
+  #config.gpu_options.experimental.collective_ring_order = params.gpu_indices
   config.gpu_options.force_gpu_compatible = params.force_gpu_compatible
-  config.experimental.use_numa_affinity = params.use_numa_affinity
+  # no longer exists?
+  #config.experimental.use_numa_affinity = params.use_numa_affinity
   if params.device == 'cpu':
     # TODO(tucker): change num_gpus to num_devices
     config.device_count['CPU'] = params.num_gpus
@@ -2033,8 +2083,10 @@ class BenchmarkCNN(object):
                             simple_value=result_value)
       if summary_writer:
         summary_writer.add_summary(summary, global_step)
-      log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples]' %
-             (accuracy_at_1, accuracy_at_5, total_eval_count))
+      ###log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples]' %
+             ###(accuracy_at_1, accuracy_at_5, total_eval_count))
+      log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples] time %.6f' %
+             (accuracy_at_1, accuracy_at_5, total_eval_count, time.time()))
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
       if self.mode != constants.BenchmarkMode.TRAIN_AND_EVAL:
@@ -2448,8 +2500,10 @@ class BenchmarkCNN(object):
         mlperf.logger.log(
             key=mlperf.tags.INPUT_SIZE,
             value=num_steps_since_last_eval * self.batch_size)
-        log_fn('Running evaluation at global_step {}'.format(
-            python_global_step))
+        ###log_fn('Running evaluation at global_step {}'.format(
+            ###python_global_step))
+        log_fn('Running evaluation at global_step {} epoch {:.0f}'.format(
+            python_global_step, round(python_global_step * self.batch_size / self.dataset.num_examples_per_epoch('train'))))
         accuracy_at_1, accuracy_at_5 = self._eval_once(
             sess, summary_writer, eval_graph_info.fetches,
             eval_graph_info.summary_op, eval_image_producer,
@@ -3267,7 +3321,25 @@ class BenchmarkCNN(object):
         else:
           horovod_device = ''
         # All-reduce gradients using Horovod.
-        grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device)
+        params = {}
+        params["compress_method"] = self.params.horovod_compress_method
+        params["comm_method"] = self.params.horovod_comm_method
+        params["use_memory"] = self.params.horovod_compress_memory
+        params["compress_ratio"] = self.params.horovod_compress_ratio
+        params["threshold_val"] = self.params.horovod_threshold_val
+        params["momentum"] = self.params.momentum
+        params["learning_rate"] = self.params.init_learning_rate
+        params["quantum_num"] = self.params.horovod_quantum_number
+        params["gradient_clipping"] = self.params.horovod_gradient_clipping
+        params['debug'] = self.params.horovod_debug
+        params['compression_device'] = self.params.compression_device
+        params['data_name'] = self.params.data_name
+        params['compress_state'] = self.params.horovod_compress_state
+        params['memory_debug'] = self.params.horovod_memory_debug
+        params['bloom_size'] = self.params.bloom_size
+        params['hash_functions'] = self.params.hash_functions
+        params['verbosity'] = self.params.verbosity
+        grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params)
                  for grad in grads]
 
       if self.params.staged_vars:
