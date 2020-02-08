@@ -944,6 +944,7 @@ def benchmark_one_step(sess,
       log_str += '\t%.*f\t%.*f' % (
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_1_accuracy'],
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_5_accuracy'])
+    wandb.log({"accuracy_top1": results['top_1_accuracy']}, step=step + 1)
     wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
     log_fn(log_str)
     if benchmark_logger:
@@ -1817,25 +1818,43 @@ class BenchmarkCNN(object):
   def print_info(self):
     """Print basic information."""
     benchmark_info = self._get_params_info()
+
     log_fn('Model:       %s' % self.model.get_model_name())
+    wandb.config.model = self.model.get_model_name()
+
     log_fn('Dataset:     %s' % benchmark_info['dataset_name'])
+    wandb.config.dataset = benchmark_info['dataset_name']
+
     log_fn('Mode:        %s' % self.mode)
+    wandb.config.mode = self.mode
+
     log_fn('SingleSess:  %s' % benchmark_info['single_session'])
     log_fn('Batch size:  %s global' % (self.batch_size * self.num_workers))
-    log_fn('             %s per device' % (self.batch_size //
-                                           len(self.raw_devices)))
+    wandb.config.batch_size = (self.batch_size * self.num_workers)
+    log_fn('             %s per device' % (self.batch_size // len(self.raw_devices)))
     if self.batch_group_size > 1:
-      log_fn('             %d batches per prepocessing group' %
-             self.batch_group_size)
+      log_fn('             %d batches per prepocessing group' % elf.batch_group_size)
+
     log_fn('Num batches: %d' % self.num_batches)
+    wandb.config.num_batches = self.num_batches
+
     log_fn('Num epochs:  %.2f' % self.num_epochs)
+    wandb.config.num_epochs = self.num_epochs
+
     log_fn('Devices:     %s' % benchmark_info['device_list'])
+    wandb.config.devices = self.benchmark_info['device_list']
+
     log_fn('NUMA bind:   %s' % self.params.use_numa_affinity)
     log_fn('Data format: %s' % self.params.data_format)
     if self.rewriter_config:
       log_fn('RewriterConfig: %s' % self.rewriter_config)
+
     log_fn('Optimizer:   %s' % self.params.optimizer)
+    wandb.config.optimizer = self.params.optimizer
+
     log_fn('Variables:   %s' % self.params.variable_update)
+    wandb.config.variables = self.params.variable_update
+
     if (self.params.variable_update == 'replicated' or
         self.params.variable_update == 'distributed_all_reduce'
         or self.params.variable_update == 'collective_all_reduce'):
@@ -1846,6 +1865,15 @@ class BenchmarkCNN(object):
       log_fn('Staged vars: %s' % self.params.staged_vars)
     if self.params.variable_update == 'horovod' and self.params.horovod_device:
       log_fn('Horovod on:  %s' % self.params.horovod_device)
+      wandb.config.horovod_on = self.params.horovod_device
+
+    # params['compression_device'] = self.params.compression_device
+    wandb.config.comm_method = self.params.horovod_comm_method
+    wandb.config.horovod_compress_method = self.params.horovod_compress_method
+    wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
+    wandb.config.hash_functions = self.params.hash_functions
+    wandb.config.bloom_size = self.params.bloom_size
+
     log_fn('==========')
 
   def _get_params_info(self):
@@ -2091,6 +2119,9 @@ class BenchmarkCNN(object):
              ###(accuracy_at_1, accuracy_at_5, total_eval_count))
       log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples] time %.6f' %
              (accuracy_at_1, accuracy_at_5, total_eval_count, time.time()))
+
+      wandb.log({'eval_top_1_accuracy', accuracy_at_1, 'eval_top_5_accuracy', accuracy_at_5, })
+
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
       if self.mode != constants.BenchmarkMode.TRAIN_AND_EVAL:
