@@ -944,7 +944,7 @@ def benchmark_one_step(sess,
       log_str += '\t%.*f\t%.*f' % (
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_1_accuracy'],
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_5_accuracy'])
-    wandb.log({"accuracy_top1": results['top_1_accuracy']}, step=step + 1)
+      wandb.log({"accuracy_top1": results['top_1_accuracy']}, step=step + 1)
     wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
     log_fn(log_str)
     if benchmark_logger:
