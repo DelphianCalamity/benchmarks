@@ -61,6 +61,9 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import nest
 
+import wandb
+# from wandb.tensorflow import WandbHook
+
 
 _DEFAULT_NUM_BATCHES = 100
 
@@ -941,6 +944,7 @@ def benchmark_one_step(sess,
       log_str += '\t%.*f\t%.*f' % (
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_1_accuracy'],
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_5_accuracy'])
+    wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
     log_fn(log_str)
     if benchmark_logger:
       benchmark_logger.log_metric(
@@ -2565,6 +2569,7 @@ class BenchmarkCNN(object):
     num_epochs_ran = (python_global_step * self.batch_size /
                       self.dataset.num_examples_per_epoch('train'))
     mlperf.logger.log_train_epochs(num_epochs_ran)
+    wandb.log({"total_images_per_sec": images_per_sec})
     if image_producer is not None:
       image_producer.done()
     if eval_image_producer is not None:
@@ -3589,6 +3594,7 @@ def setup(params):
   if params.variable_update == 'horovod':
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
+    wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=True)
 
   platforms_util.initialize(params, create_config_proto(params))
 
