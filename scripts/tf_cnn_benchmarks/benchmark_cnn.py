@@ -1842,7 +1842,7 @@ class BenchmarkCNN(object):
     wandb.config.num_epochs = self.num_epochs
 
     log_fn('Devices:     %s' % benchmark_info['device_list'])
-    wandb.config.devices = self.benchmark_info['device_list']
+    wandb.config.devices = benchmark_info['device_list']
 
     log_fn('NUMA bind:   %s' % self.params.use_numa_affinity)
     log_fn('Data format: %s' % self.params.data_format)
