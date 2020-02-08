@@ -1833,7 +1833,7 @@ class BenchmarkCNN(object):
     wandb.config.batch_size = (self.batch_size * self.num_workers)
     log_fn('             %s per device' % (self.batch_size // len(self.raw_devices)))
     if self.batch_group_size > 1:
-      log_fn('             %d batches per prepocessing group' % elf.batch_group_size)
+      log_fn('             %d batches per prepocessing group' % self.batch_group_size)
 
     log_fn('Num batches: %d' % self.num_batches)
     wandb.config.num_batches = self.num_batches
