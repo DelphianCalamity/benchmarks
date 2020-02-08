@@ -2120,7 +2120,7 @@ class BenchmarkCNN(object):
       log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples] time %.6f' %
              (accuracy_at_1, accuracy_at_5, total_eval_count, time.time()))
 
-      wandb.log({'eval_top_1_accuracy', accuracy_at_1, 'eval_top_5_accuracy', accuracy_at_5, })
+      wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
 
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
