@@ -3380,8 +3380,10 @@ class BenchmarkCNN(object):
         params['hash_functions'] = self.params.hash_functions
         params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
-        grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params)
-                 for grad in grads]
+        grads = []
+        for i, grad in enumerate(grads):
+            params['logfile_suffix'] = i
+            grads.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
 
       if self.params.staged_vars:
         grad_dtypes = [grad.dtype for grad in grads]
