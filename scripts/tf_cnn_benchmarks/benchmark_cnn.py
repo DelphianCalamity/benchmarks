@@ -721,6 +721,9 @@ flags.DEFINE_integer('bloom_size', None,
 flags.DEFINE_integer('hash_functions', None,
                     'number of hash functions in case of bloom_topk compression method')
 
+flags.DEFINE_float('fpr', None,
+                    'false positive rate for bloom filter compression method')
+
 flags.DEFINE_integer('bloom_verbosity', 0,
                     'bloom filter operators logging frequency')
 
@@ -1867,6 +1870,9 @@ class BenchmarkCNN(object):
       wandb.config.hash_functions = self.params.hash_functions
       wandb.config.bloom_size = self.params.bloom_size
       wandb.config.piecewise_learning_rate = self.params.piecewise_learning_rate_schedule
+      wandb.config.fpr = self.params.fpr
+    # params['compression_device'] = self.params.compression_device
+    log_fn('==========')
 
   def _get_params_info(self):
     """Get the common parameters info for the benchmark run.
@@ -3366,9 +3372,14 @@ class BenchmarkCNN(object):
         params['memory_debug'] = self.params.horovod_memory_debug
         params['bloom_size'] = self.params.bloom_size
         params['hash_functions'] = self.params.hash_functions
+        params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
-        grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params)
-                 for grad in grads]
+
+        all_reduces = []
+        for i, grad in enumerate(grads):
+            params['logfile_suffix'] = i
+            all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
+        grads = all_reduces
 
       if self.params.staged_vars:
         grad_dtypes = [grad.dtype for grad in grads]
