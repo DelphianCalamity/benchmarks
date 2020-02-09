@@ -1816,65 +1816,57 @@ class BenchmarkCNN(object):
       ]
 
   def print_info(self):
-    """Print basic information."""
-    benchmark_info = self._get_params_info()
+      """Print basic information."""
+      benchmark_info = self._get_params_info()
+      log_fn('Model:       %s' % self.model.get_model_name())
+      log_fn('Dataset:     %s' % benchmark_info['dataset_name'])
+      log_fn('Mode:        %s' % self.mode)
+      log_fn('SingleSess:  %s' % benchmark_info['single_session'])
+      log_fn('Batch size:  %s global' % (self.batch_size * self.num_workers))
+      log_fn('             %s per device' % (self.batch_size // len(self.raw_devices)))
+      if self.batch_group_size > 1:
+          log_fn('             %d batches per prepocessing group' % self.batch_group_size)
+      log_fn('Num batches: %d' % self.num_batches)
+      log_fn('Num epochs:  %.2f' % self.num_epochs)
+      log_fn('Devices:     %s' % benchmark_info['device_list'])
+      log_fn('NUMA bind:   %s' % self.params.use_numa_affinity)
+      log_fn('Data format: %s' % self.params.data_format)
+      if self.rewriter_config:
+          log_fn('RewriterConfig: %s' % self.rewriter_config)
+      log_fn('Optimizer:   %s' % self.params.optimizer)
+      log_fn('Variables:   %s' % self.params.variable_update)
+      if (self.params.variable_update == 'replicated' or
+              self.params.variable_update == 'distributed_all_reduce'
+              or self.params.variable_update == 'collective_all_reduce'):
+          log_fn('AllReduce:   %s' % self.params.all_reduce_spec)
+      if self.job_name:
+          log_fn('Sync:        %s' % self.params.cross_replica_sync)
+      if self.params.staged_vars:
+          log_fn('Staged vars: %s' % self.params.staged_vars)
+      if self.params.variable_update == 'horovod' and self.params.horovod_device:
+          log_fn('Horovod on:  %s' % self.params.horovod_device)
 
-    log_fn('Model:       %s' % self.model.get_model_name())
-    wandb.config.model = self.model.get_model_name()
+      # params['compression_device'] = self.params.compression_device
+      log_fn('==========')
 
-    log_fn('Dataset:     %s' % benchmark_info['dataset_name'])
-    wandb.config.dataset = benchmark_info['dataset_name']
-
-    log_fn('Mode:        %s' % self.mode)
-    wandb.config.mode = self.mode
-
-    log_fn('SingleSess:  %s' % benchmark_info['single_session'])
-    log_fn('Batch size:  %s global' % (self.batch_size * self.num_workers))
-    wandb.config.batch_size = (self.batch_size * self.num_workers)
-    log_fn('             %s per device' % (self.batch_size // len(self.raw_devices)))
-    if self.batch_group_size > 1:
-      log_fn('             %d batches per prepocessing group' % self.batch_group_size)
-
-    log_fn('Num batches: %d' % self.num_batches)
-    wandb.config.num_batches = self.num_batches
-
-    log_fn('Num epochs:  %.2f' % self.num_epochs)
-    wandb.config.num_epochs = self.num_epochs
-
-    log_fn('Devices:     %s' % benchmark_info['device_list'])
-    wandb.config.devices = benchmark_info['device_list']
-
-    log_fn('NUMA bind:   %s' % self.params.use_numa_affinity)
-    log_fn('Data format: %s' % self.params.data_format)
-    if self.rewriter_config:
-      log_fn('RewriterConfig: %s' % self.rewriter_config)
-
-    log_fn('Optimizer:   %s' % self.params.optimizer)
-    wandb.config.optimizer = self.params.optimizer
-
-    log_fn('Variables:   %s' % self.params.variable_update)
-    wandb.config.variables = self.params.variable_update
-
-    if (self.params.variable_update == 'replicated' or
-        self.params.variable_update == 'distributed_all_reduce'
-        or self.params.variable_update == 'collective_all_reduce'):
-      log_fn('AllReduce:   %s' % self.params.all_reduce_spec)
-    if self.job_name:
-      log_fn('Sync:        %s' % self.params.cross_replica_sync)
-    if self.params.staged_vars:
-      log_fn('Staged vars: %s' % self.params.staged_vars)
-    if self.params.variable_update == 'horovod' and self.params.horovod_device:
-      log_fn('Horovod on:  %s' % self.params.horovod_device)
+  def wandb_log(self):
+      benchmark_info = self._get_params_info()
+      wandb.config.mode = self.mode
+      wandb.config.model = self.model.get_model_name()
+      wandb.config.dataset = benchmark_info['dataset_name']
+      wandb.config.batch_size = (self.batch_size * self.num_workers)
+      wandb.config.num_batches = self.num_batches
+      wandb.config.num_epochs = self.num_epochs
+      wandb.config.variables = self.params.variable_update
+      wandb.config.optimizer = self.params.optimizer
+      wandb.config.devices = benchmark_info['device_list']
       wandb.config.horovod_on = self.params.horovod_device
-
-    # params['compression_device'] = self.params.compression_device
-    wandb.config.comm_method = self.params.horovod_comm_method
-    wandb.config.horovod_compress_method = self.params.horovod_compress_method
-    wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-    wandb.config.hash_functions = self.params.hash_functions
-    wandb.config.bloom_size = self.params.bloom_size
-
-    log_fn('==========')
+      wandb.config.comm_method = self.params.horovod_comm_method
+      wandb.config.horovod_compress_method = self.params.horovod_compress_method
+      wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
+      wandb.config.hash_functions = self.params.hash_functions
+      wandb.config.bloom_size = self.params.bloom_size
+      wandb.config.piecewise_learning_rate = self.params.piecewise_learning_rate_schedule
 
   def _get_params_info(self):
     """Get the common parameters info for the benchmark run.
@@ -3625,7 +3617,7 @@ def setup(params):
   if params.variable_update == 'horovod':
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
-    wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=True)
+    wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=False)
 
   platforms_util.initialize(params, create_config_proto(params))
 
