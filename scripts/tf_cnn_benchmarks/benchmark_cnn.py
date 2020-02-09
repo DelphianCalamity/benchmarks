@@ -721,6 +721,9 @@ flags.DEFINE_integer('bloom_size', None,
 flags.DEFINE_integer('hash_functions', None,
                     'number of hash functions in case of bloom_topk compression method')
 
+flags.DEFINE_float('fpr', None,
+                    'false positive rate for bloom filter compression method')
+
 flags.DEFINE_integer('bloom_verbosity', 0,
                     'bloom filter operators logging frequency')
 
@@ -1873,6 +1876,7 @@ class BenchmarkCNN(object):
     wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
     wandb.config.hash_functions = self.params.hash_functions
     wandb.config.bloom_size = self.params.bloom_size
+    wandb.config.fpr = self.params.fpr
 
     log_fn('==========')
 
@@ -3374,6 +3378,7 @@ class BenchmarkCNN(object):
         params['memory_debug'] = self.params.horovod_memory_debug
         params['bloom_size'] = self.params.bloom_size
         params['hash_functions'] = self.params.hash_functions
+        params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
         grads = [hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params)
                  for grad in grads]
