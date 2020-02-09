@@ -1850,9 +1850,6 @@ class BenchmarkCNN(object):
           log_fn('Horovod on:  %s' % self.params.horovod_device)
 
       # params['compression_device'] = self.params.compression_device
-      log_fn('==========')
-
-  def wandb_log(self):
       benchmark_info = self._get_params_info()
       wandb.config.mode = self.mode
       wandb.config.model = self.model.get_model_name()
@@ -1871,8 +1868,8 @@ class BenchmarkCNN(object):
       wandb.config.bloom_size = self.params.bloom_size
       wandb.config.piecewise_learning_rate = self.params.piecewise_learning_rate_schedule
       wandb.config.fpr = self.params.fpr
-    # params['compression_device'] = self.params.compression_device
-    log_fn('==========')
+      log_fn('==========')
+
 
   def _get_params_info(self):
     """Get the common parameters info for the benchmark run.
