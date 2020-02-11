@@ -3372,7 +3372,7 @@ class BenchmarkCNN(object):
         params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
         if params["compress_method"] == "bloom_topk":
-            params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions"])
+            params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
 
         all_reduces = []
         for i, grad in enumerate(grads):
