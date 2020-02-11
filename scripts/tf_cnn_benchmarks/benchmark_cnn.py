@@ -3374,13 +3374,12 @@ class BenchmarkCNN(object):
         if params["compress_method"] == "bloom_topk":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions"])
 
-
-
         all_reduces = []
         for i, grad in enumerate(grads):
             params['logfile_suffix'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
+        wandb.log({"Bloom_Config": params['bloom_config']})
 
       if self.params.staged_vars:
         grad_dtypes = [grad.dtype for grad in grads]
