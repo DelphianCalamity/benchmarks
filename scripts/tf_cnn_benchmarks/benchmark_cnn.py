@@ -62,6 +62,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.util import nest
 
 import wandb
+import subprocess
 # from wandb.tensorflow import WandbHook
 
 
@@ -727,6 +728,8 @@ flags.DEFINE_float('fpr', None,
 flags.DEFINE_integer('bloom_verbosity', 0,
                     'bloom filter operators logging frequency')
 
+flags.DEFINE_string('logs_path', None,
+                    'path to where bloom operators outputs is logged')
 platforms_util.define_platform_params()
 
 
@@ -949,6 +952,18 @@ def benchmark_one_step(sess,
           LOSS_AND_ACCURACY_DIGITS_TO_SHOW, results['top_5_accuracy'])
       wandb.log({"accuracy_top1": results['top_1_accuracy']}, step=step + 1)
     wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
+
+    # if params.bloom_verbosity != 0 and (step % 50) == 0:
+    #     cmd1 = "cat " + params.logs_path + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
+    #     cmd2 = "cat " + params.logs_path + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
+    #     p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    #     false_positives = int(p.split("\n")[0])
+    #     p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    #     total = int(p.split("\n")[0])
+    #
+    #     wandb.log({"False_pos_accum": false_positives}, step=step + 1)
+    #     wandb.log({"FPR": false_positives/total}, step=step + 1)
+
     log_fn(log_str)
     if benchmark_logger:
       benchmark_logger.log_metric(
@@ -2116,6 +2131,17 @@ class BenchmarkCNN(object):
 
       wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
 
+      if self.params.bloom_verbosity != 0:
+          cmd1 = "cat " + self.params.logs_path + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
+          cmd2 = "cat " + self.params.logs_path + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
+          p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          false_positives = int(p.split("\n")[0])
+          p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          total = int(p.split("\n")[0])
+
+          wandb.log({"False_pos_accum": false_positives})
+          wandb.log({"FPR": false_positives / total})
+
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
       if self.mode != constants.BenchmarkMode.TRAIN_AND_EVAL:
@@ -2595,6 +2621,16 @@ class BenchmarkCNN(object):
                       self.dataset.num_examples_per_epoch('train'))
     mlperf.logger.log_train_epochs(num_epochs_ran)
     wandb.log({"total_images_per_sec": images_per_sec})
+
+    # if self.params.bloom_verbosity != 0:
+    #     cmd1 = "cat " + self.params.logs_path + "/*/*/hashes* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
+    #     p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    #     false_positives = int(p.split("\n")[0])
+    #     p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    #     total = int(p.split("\n")[0])
+    #
+    #     wandb.log({"False_pos_accum": false_positives}, step=step + 1)
+
     if image_producer is not None:
       image_producer.done()
     if eval_image_producer is not None:
@@ -3370,6 +3406,7 @@ class BenchmarkCNN(object):
         params['hash_functions'] = self.params.hash_functions
         params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
+        params['logs_path'] = self.params.logs_path
         if params["compress_method"] == "bloom_topk":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
 
