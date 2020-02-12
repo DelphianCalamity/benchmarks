@@ -1864,9 +1864,8 @@ class BenchmarkCNN(object):
       wandb.config.comm_method = self.params.horovod_comm_method
       wandb.config.horovod_compress_method = self.params.horovod_compress_method
       wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-      wandb.config.hash_functions = self.params.hash_functions
-      wandb.config.bloom_size = self.params.bloom_size
-      wandb.config.piecewise_learning_rate = self.params.piecewise_learning_rate_schedule
+      wandb.config.k = self.params.hash_functions
+      wandb.config.m = self.params.bloom_size
       wandb.config.fpr = self.params.fpr
       log_fn('==========')
 
