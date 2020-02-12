@@ -2140,8 +2140,8 @@ class BenchmarkCNN(object):
           p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
           total = int(p.split("\n")[0])
 
-          wandb.log({"False_pos_accum": false_positives}, step=step + 1)
-          wandb.log({"FPR": false_positives / total}, step=step + 1)
+          wandb.log({"False_pos_accum": false_positives})
+          wandb.log({"FPR": false_positives / total})
 
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
