@@ -953,7 +953,7 @@ def benchmark_one_step(sess,
       wandb.log({"accuracy_top1": results['top_1_accuracy']}, step=step + 1)
     wandb.log({"local_images_per_second": speed_mean}, step=step + 1)
 
-    if params.bloom_verbosity != 0 and (step % params.bloom_verbosity) == 0:
+    if params.bloom_verbosity != 0 and (step % 50) == 0:
         cmd1 = "cat " + params.logs_path + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
         cmd2 = "cat " + params.logs_path + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
