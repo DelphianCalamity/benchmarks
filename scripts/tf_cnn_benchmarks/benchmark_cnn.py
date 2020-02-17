@@ -3548,7 +3548,8 @@ def setup(params):
   if params.variable_update == 'horovod':
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
-
+  import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
+  hvd.init()
   if hvd.rank()!=0:
     os.environ['WANDB_MODE'] = 'dryrun'
   wandb_id = os.environ.get('WANDB_ID', None)
