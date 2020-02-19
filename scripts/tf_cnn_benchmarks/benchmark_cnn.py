@@ -734,7 +734,7 @@ flags.DEFINE_integer('bloom_verbosity', 0,
 flags.DEFINE_string('logs_path', None,
                     'path to where bloom operators output is logged')
 
-flags.DEFINE_int('logs_path_suffix', None,
+flags.DEFINE_integer('logs_path_suffix', None,
                     'suffix of path to where bloom operators output is logged')
 
 flags.DEFINE_string('hash_function', None,
