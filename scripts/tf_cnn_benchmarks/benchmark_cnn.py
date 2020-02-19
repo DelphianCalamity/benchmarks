@@ -717,10 +717,13 @@ flags.DEFINE_string('compression_device', '',
                     'set the device(/device:GPU:0,/device:GPU:1,/device:CPU:0) to run compression and decompression')
 
 flags.DEFINE_integer('bloom_size', None,
-                     'Size of bloom filter in case of bloom_topk compression method')
+                     'Size of bloom filter in case of bloom_* compression method')
 
-flags.DEFINE_integer('hash_functions', None,
-                    'number of hash functions in case of bloom_topk compression method')
+flags.DEFINE_string('horovod_bloom_on', "topk",
+                     'choice of underlying sparsification method for bloom_* compression method')
+
+flags.DEFINE_integer('hash_functions_number', None,
+                    'number of hash functions in case of bloom_* compression method')
 
 flags.DEFINE_float('fpr', None,
                     'false positive rate for bloom filter compression method')
@@ -729,7 +732,13 @@ flags.DEFINE_integer('bloom_verbosity', 0,
                     'bloom filter operators logging frequency')
 
 flags.DEFINE_string('logs_path', None,
-                    'path to where bloom operators outputs is logged')
+                    'path to where bloom operators output is logged')
+
+flags.DEFINE_int('logs_path_suffix', None,
+                    'suffix of path to where bloom operators output is logged')
+
+flags.DEFINE_string('hash_function', None,
+                    'choice of hash functions in case of bloom_* compression method')
 platforms_util.define_platform_params()
 
 
@@ -1877,11 +1886,12 @@ class BenchmarkCNN(object):
       wandb.config.devices = benchmark_info['device_list']
       wandb.config.horovod_on = self.params.horovod_device
       wandb.config.comm_method = self.params.horovod_comm_method
+      wandb.config.bloom_on = self.params.horovod_bloom_on
       wandb.config.horovod_compress_method = self.params.horovod_compress_method
       wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-      wandb.config.hash_functions = self.params.hash_functions
+      wandb.config.hash_functions_number = self.params.hash_functions_number
+      wandb.config.hash_function = self.params.hash_function
       wandb.config.bloom_size = self.params.bloom_size
-      wandb.config.piecewise_learning_rate = self.params.piecewise_learning_rate_schedule
       wandb.config.fpr = self.params.fpr
       log_fn('==========')
 
@@ -3404,19 +3414,26 @@ class BenchmarkCNN(object):
         params['compress_state'] = self.params.horovod_compress_state
         params['memory_debug'] = self.params.horovod_memory_debug
         params['bloom_size'] = self.params.bloom_size
-        params['hash_functions'] = self.params.hash_functions
+        params['hash_functions_number'] = self.params.hash_functions_number
         params['fpr'] = self.params.fpr
         params['verbosity'] = self.params.bloom_verbosity
         params['logs_path'] = self.params.logs_path
-        if params["compress_method"] == "bloom_topk":
+        params['logs_path_suffix'] = self.params.logs_path_suffix
+        params['hash_function'] = self.params.hash_function
+        params['bloom_on'] = self.params.horovod_bloom_on
+        if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
+            params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)", "Will-Send (Bits)", "Will-Send (Bytes)", "Gain (Bits)", "Gain (Bytes)"])
 
         all_reduces = []
         for i, grad in enumerate(grads):
             params['logfile_suffix'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
-        wandb.log({"Bloom_Config": params['bloom_config']})
+        if params["compress_method"] == "bloom":
+            wandb.log({"Bloom_Config": params['bloom_config']})
+            wandb.log({"Throughput_Info": params['throughput_info']})
+
 
       if self.params.staged_vars:
         grad_dtypes = [grad.dtype for grad in grads]
