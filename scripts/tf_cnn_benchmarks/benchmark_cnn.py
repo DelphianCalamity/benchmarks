@@ -2131,8 +2131,8 @@ class BenchmarkCNN(object):
       wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
 
       if self.params.bloom_verbosity != 0:
-          cmd1 = "cat " + self.params.logs_path + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
-          cmd2 = "cat " + self.params.logs_path + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
+          cmd1 = "cat " + self.params.logs_path + self.params.logs_path_suffix + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
+          cmd2 = "cat " + self.params.logs_path + self.params.logs_path_suffix + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
           false_positives = int(p.split("\n")[0])
           p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
