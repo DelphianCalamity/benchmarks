@@ -1886,7 +1886,7 @@ class BenchmarkCNN(object):
       wandb.config.k = self.params.hash_functions_number
       wandb.config.m = self.params.bloom_size
       wandb.config.fpr = self.params.fpr
-      wandb.config.fpr = self.params.code
+      wandb.config.code = self.params.code
 
       log_fn('==========')
 
