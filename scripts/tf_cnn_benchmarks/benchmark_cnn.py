@@ -739,6 +739,11 @@ flags.DEFINE_integer('logs_path_suffix', None,
 
 flags.DEFINE_string('hash_function', None,
                     'choice of hash functions in case of bloom_* compression method')
+
+flags.DEFINE_string('code', None,
+                    'choice of integer compress method')
+
+
 platforms_util.define_platform_params()
 
 
@@ -1881,6 +1886,8 @@ class BenchmarkCNN(object):
       wandb.config.k = self.params.hash_functions_number
       wandb.config.m = self.params.bloom_size
       wandb.config.fpr = self.params.fpr
+      wandb.config.fpr = self.params.code
+
       log_fn('==========')
 
 
@@ -3408,6 +3415,7 @@ class BenchmarkCNN(object):
         params['logs_path'] = self.params.logs_path
         params['logs_path_suffix'] = self.params.logs_path_suffix
         params['hash_function'] = self.params.hash_function
+        params['code'] = self.params.code
         params['bloom_on'] = self.params.horovod_bloom_on
         if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
