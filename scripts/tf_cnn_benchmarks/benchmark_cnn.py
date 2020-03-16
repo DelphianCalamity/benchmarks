@@ -2148,6 +2148,18 @@ class BenchmarkCNN(object):
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
 
+      if self.params.horovod_compress_method == "topk" and self.params.bloom_verbosity != 0:
+          cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
+          cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
+          p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          initial_size = int(p.split("\n")[0])
+          p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          final_size = int(p.split("\n")[0])
+
+          wandb.log({"Init Bits": initial_size*32})
+          wandb.log({"Final Bits": final_size * 32})
+          wandb.log({"Bits_per_int": 32*(final_size / initial_size)})
+
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
       if self.mode != constants.BenchmarkMode.TRAIN_AND_EVAL:
@@ -3419,7 +3431,6 @@ class BenchmarkCNN(object):
         params['bloom_on'] = self.params.horovod_bloom_on
         if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
-        if params["compress_method"] == "bloom" or params["compress_method"] == "topk":
             params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)", "Will-Send (Bits)", "Will-Send (Bytes)", "Gain (Bits)", "Gain (Bytes)"])
 
         all_reduces = []
@@ -3429,7 +3440,6 @@ class BenchmarkCNN(object):
         grads = all_reduces
         if params["compress_method"] == "bloom":
             wandb.log({"Bloom_Config": params['bloom_config']})
-        if params["compress_method"] == "bloom" or params["compress_method"] == "topk":
             wandb.log({"Throughput_Info": params['throughput_info']})
 
 
