@@ -3419,6 +3419,7 @@ class BenchmarkCNN(object):
         params['bloom_on'] = self.params.horovod_bloom_on
         if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
+        if params["compress_method"] == "bloom" or params["compress_method"] == "topk":
             params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)", "Will-Send (Bits)", "Will-Send (Bytes)", "Gain (Bits)", "Gain (Bytes)"])
 
         all_reduces = []
@@ -3428,6 +3429,7 @@ class BenchmarkCNN(object):
         grads = all_reduces
         if params["compress_method"] == "bloom":
             wandb.log({"Bloom_Config": params['bloom_config']})
+        if params["compress_method"] == "bloom" or params["compress_method"] == "topk":
             wandb.log({"Throughput_Info": params['throughput_info']})
 
 
