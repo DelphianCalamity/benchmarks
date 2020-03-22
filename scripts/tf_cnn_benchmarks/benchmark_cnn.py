@@ -743,6 +743,9 @@ flags.DEFINE_string('hash_function', None,
 flags.DEFINE_string('code', None,
                     'choice of integer compress method')
 
+flags.DEFINE_string('encoding', None,
+                    'integer or bitstream indices compression')
+
 
 platforms_util.define_platform_params()
 
@@ -1887,6 +1890,7 @@ class BenchmarkCNN(object):
       wandb.config.m = self.params.bloom_size
       wandb.config.fpr = self.params.fpr
       wandb.config.code = self.params.code
+      wandb.config.encoding = self.params.encoding
 
       log_fn('==========')
 
@@ -2148,7 +2152,7 @@ class BenchmarkCNN(object):
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
 
-      if self.params.horovod_compress_method == "topk" and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"topk", "bloom"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
@@ -2156,9 +2160,9 @@ class BenchmarkCNN(object):
           p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
           final_size = int(p.split("\n")[0])
 
-          wandb.log({"Init Bits": initial_size*32})
-          wandb.log({"Final Bits": final_size * 32})
-          wandb.log({"Bits_per_int": 32*(final_size / initial_size)})
+          wandb.log({"Init Bits": initial_size})
+          wandb.log({"Final Bits": final_size})
+          wandb.log({"ratio": (final_size / initial_size)})
 
       elapsed_time = loop_end_time - loop_start_time
       images_per_sec = (self.num_batches * self.batch_size / elapsed_time)
@@ -3428,6 +3432,7 @@ class BenchmarkCNN(object):
         params['logs_path_suffix'] = self.params.logs_path_suffix
         params['hash_function'] = self.params.hash_function
         params['code'] = self.params.code
+        params['encoding'] = self.params.encoding
         params['bloom_on'] = self.params.horovod_bloom_on
         if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
@@ -3690,8 +3695,8 @@ def setup(params):
   if params.variable_update == 'horovod':
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
-    wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=False)
-
+    # wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=False)
+    wandb.init(project="gradients-bitstream-compression", sync_tensorboard=False)
   platforms_util.initialize(params, create_config_proto(params))
 
   if not params.job_name:
