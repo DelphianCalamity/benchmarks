@@ -1893,6 +1893,7 @@ class BenchmarkCNN(object):
       wandb.config.fpr = self.params.fpr
       wandb.config.code = self.params.code
       wandb.config.encoding = self.params.encoding
+      wandb.config.partitioning = self.params.partitioning
 
       log_fn('==========')
 
@@ -3435,6 +3436,7 @@ class BenchmarkCNN(object):
         params['hash_function'] = self.params.hash_function
         params['code'] = self.params.code
         params['encoding'] = self.params.encoding
+        params['partitioning'] = self.params.partitioning
         params['bloom_on'] = self.params.horovod_bloom_on
         if params["compress_method"] == "bloom":
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
