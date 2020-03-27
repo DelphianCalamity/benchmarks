@@ -2144,7 +2144,7 @@ class BenchmarkCNN(object):
 
       wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
 
-      if self.params.horovod_compress_method == "bloom" and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
@@ -2155,7 +2155,7 @@ class BenchmarkCNN(object):
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
 
-      if self.params.horovod_compress_method in {"topk", "bloom"} and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"topk", "bloom", "bloom_adaptive"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
@@ -3438,7 +3438,7 @@ class BenchmarkCNN(object):
         params['encoding'] = self.params.encoding
         params['partitioning'] = self.params.partitioning
         params['bloom_on'] = self.params.horovod_bloom_on
-        if params["compress_method"] == "bloom":
+        if params["compress_method"] in {"bloom", "bloom_adaptive"}:
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
             params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)", "Will-Send (Bits)", "Will-Send (Bytes)", "Gain (Bits)", "Gain (Bytes)"])
 
@@ -3447,7 +3447,7 @@ class BenchmarkCNN(object):
             params['logfile_suffix'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
-        if params["compress_method"] == "bloom":
+        if params["compress_method"] in {"bloom", "bloom_adaptive"}:
             wandb.log({"Bloom_Config": params['bloom_config']})
             wandb.log({"Throughput_Info": params['throughput_info']})
 
