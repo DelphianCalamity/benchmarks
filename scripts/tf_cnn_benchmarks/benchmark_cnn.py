@@ -688,7 +688,7 @@ flags.DEFINE_enum('horovod_comm_method', 'allreduce',
 
 flags.DEFINE_enum('horovod_compress_method', 'none',
                   ('none', 'fp16', 'randomk', 'topk', 'threshold', 'terngrad', 'qsgd', 'dgc', 'adaq',
-                   'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom'),
+                   'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom', 'bloom_adaptive'),
                   'The method for compressing the variables used in hororvod: none, '
                   'randomk, topk, threshold')
 
@@ -746,6 +746,8 @@ flags.DEFINE_string('code', None,
 flags.DEFINE_string('encoding', None,
                     'integer or bitstream indices compression')
 
+flags.DEFINE_string('partitioning', None,
+                    'for adaptive bloom')
 
 platforms_util.define_platform_params()
 
