@@ -746,7 +746,7 @@ flags.DEFINE_string('code', None,
 flags.DEFINE_string('encoding', None,
                     'integer or bitstream indices compression')
 
-flags.DEFINE_string('partitioning', None,
+flags.DEFINE_float('partitioning', None,
                     'for adaptive bloom')
 
 platforms_util.define_platform_params()
