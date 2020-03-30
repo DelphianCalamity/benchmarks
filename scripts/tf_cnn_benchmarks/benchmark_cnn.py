@@ -2158,16 +2158,16 @@ class BenchmarkCNN(object):
 
       if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(
-              self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{modified_values += $2} END {print modified_values}'"
+              self.params.logs_path_suffix) + "/*/*/values_modified* | awk -F ' ' '{modified_values += $2} END {print modified_values}'"
           cmd2 = "cat " + self.params.logs_path + str(
-              self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
+              self.params.logs_path_suffix) + "/*/*/values_modified* | awk -F ' ' '{total += $4} END {print total}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-          false_positives = int(p.split("\n")[0])
+          values_modified = int(p.split("\n")[0])
           p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
           total = int(p.split("\n")[0])
 
-          wandb.log({"False_pos_accum": false_positives})
-          wandb.log({"FPR": false_positives / total})
+          wandb.log({"ValuesChanged": values_modified})
+          wandb.log({"VCR":  values_modified / total})
 
       if self.params.horovod_compress_method in {"topk", "bloom", "bloom_adaptive", "context_aware_bloom"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
