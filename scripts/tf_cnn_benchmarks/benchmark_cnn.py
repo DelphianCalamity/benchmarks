@@ -2169,7 +2169,9 @@ class BenchmarkCNN(object):
           wandb.log({"ValuesChanged": values_modified})
           wandb.log({"VCR":  values_modified / total})
 
-      if self.params.horovod_compress_method in {"topk", "bloom", "bloom_adaptive", "context_aware_bloom"} and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom"} \
+              or self.params.horovod_compress_method == "topk" and self.params.encoding is not None \
+              and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
