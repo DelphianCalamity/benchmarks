@@ -2156,7 +2156,7 @@ class BenchmarkCNN(object):
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
 
-      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom"} and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"context_aware_bloom"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(
               self.params.logs_path_suffix) + "/*/*/values_modified* | awk -F ' ' '{modified_values += $2} END {print modified_values}'"
           cmd2 = "cat " + self.params.logs_path + str(
