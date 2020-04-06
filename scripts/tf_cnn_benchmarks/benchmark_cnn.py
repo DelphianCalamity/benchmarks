@@ -3465,7 +3465,7 @@ class BenchmarkCNN(object):
         params['encoding'] = self.params.encoding
         params['partitioning'] = self.params.partitioning
         params['bloom_on'] = self.params.horovod_bloom_on
-        if params["compress_method"] in {"bloom", "bloom_adaptive", "context_aware_bloom"}:
+        if params["compress_method"] in {"bloom", "bloom_adaptive", "context_aware_bloom", "bloom_conflict_sets"}:
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
             params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)", "Will-Send (Bits)", "Will-Send (Bytes)", "Gain (Bits)", "Gain (Bytes)"])
 
@@ -3474,7 +3474,7 @@ class BenchmarkCNN(object):
             params['logfile_suffix'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
-        if params["compress_method"] in {"bloom", "bloom_adaptive", "context_aware_bloom"}:
+        if params["compress_method"] in {"bloom", "bloom_adaptive", "context_aware_bloom", "bloom_conflict_sets"}:
             wandb.log({"Bloom_Config": params['bloom_config']})
             wandb.log({"Throughput_Info": params['throughput_info']})
 
