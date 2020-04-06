@@ -689,7 +689,7 @@ flags.DEFINE_enum('horovod_comm_method', 'allreduce',
 flags.DEFINE_enum('horovod_compress_method', 'none',
                   ('none', 'fp16', 'randomk', 'topk', 'threshold', 'terngrad', 'qsgd', 'dgc', 'adaq',
                    'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom',
-                   'bloom_adaptive', 'context_aware_bloom', 'bloom__conflict_sets'),
+                   'bloom_adaptive', 'context_aware_bloom', 'bloom_conflict_sets'),
                   'The method for compressing the variables used in hororvod: none, '
                   'randomk, topk, threshold')
 
