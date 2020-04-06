@@ -689,7 +689,7 @@ flags.DEFINE_enum('horovod_comm_method', 'allreduce',
 flags.DEFINE_enum('horovod_compress_method', 'none',
                   ('none', 'fp16', 'randomk', 'topk', 'threshold', 'terngrad', 'qsgd', 'dgc', 'adaq',
                    'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom',
-                   'bloom_adaptive', 'context_aware_bloom'),
+                   'bloom_adaptive', 'context_aware_bloom', 'bloom__conflict_sets'),
                   'The method for compressing the variables used in hororvod: none, '
                   'randomk, topk, threshold')
 
@@ -2145,7 +2145,7 @@ class BenchmarkCNN(object):
 
       wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
 
-      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom"} and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom, bloom_conflict_sets"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
@@ -2155,6 +2155,17 @@ class BenchmarkCNN(object):
 
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
+
+      if self.params.horovod_compress_method in {"bloom_conflict_sets"} and self.params.bloom_verbosity != 0:
+          cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{policy_errors += $2} END {print policy_errors}'"
+          cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{total += $4} END {print total}'"
+          p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          policy_errors = int(p.split("\n")[0])
+          p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+          total = int(p.split("\n")[0])
+
+          wandb.log({"policy_errors": policy_errors})
+          wandb.log({"rate_policy_errors": policy_errors / total})
 
       if self.params.horovod_compress_method in {"context_aware_bloom"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(
@@ -2169,7 +2180,7 @@ class BenchmarkCNN(object):
           wandb.log({"ValuesChanged": values_modified})
           wandb.log({"VCR":  values_modified / total})
 
-      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom"} \
+      if self.params.horovod_compress_method in {"bloom", "bloom_adaptive", "context_aware_bloom, bloom_conflict_sets"} \
               or self.params.horovod_compress_method == "topk" and self.params.encoding is not None \
               and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
