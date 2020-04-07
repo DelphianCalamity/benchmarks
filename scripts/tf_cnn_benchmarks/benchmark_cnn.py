@@ -2156,7 +2156,7 @@ class BenchmarkCNN(object):
           wandb.log({"False_pos_accum": false_positives})
           wandb.log({"FPR": false_positives / total})
 
-      if self.params.horovod_compress_method in {"bloom", "bloom_conflict_sets", "fp_aware_bloom_conflict_sets"} and self.params.bloom_verbosity != 0:
+      if self.params.horovod_compress_method in {"bloom", "bloom_conflict_sets", "fp_aware_bloom", "fp_aware_bloom_conflict_sets"} and self.params.bloom_verbosity != 0:
           cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{policy_errors += $2} END {print policy_errors}'"
           cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{total += $4} END {print total}'"
           p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
