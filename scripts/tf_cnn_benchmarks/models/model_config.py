@@ -27,12 +27,12 @@ from models import densenet_model
 from models import googlenet_model
 from models import inception_model
 from models import lenet_model
-from models import mobilenet_v2
-from models import nasnet_model
+from models.tf1_only import mobilenet_v2
+from models.tf1_only import nasnet_model
 from models import official_resnet_model
 from models import overfeat_model
 from models import resnet_model
-from models import ssd_model
+from models.tf1_only import ssd_model
 from models import trivial_model
 from models import vgg_model
 from models.experimental import deepspeech
