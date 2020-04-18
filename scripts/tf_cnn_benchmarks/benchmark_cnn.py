@@ -3454,7 +3454,7 @@ class BenchmarkCNN(object):
 
         # Print number of tensors for once
         #if print_once:
-          print(f"==Debug== The model has {len(grads)} gradient tensors")
+          # print(f"==Debug== The model has {len(grads)} gradient tensors")
           #print_once = False
 
         # All-reduce gradients using Horovod.
