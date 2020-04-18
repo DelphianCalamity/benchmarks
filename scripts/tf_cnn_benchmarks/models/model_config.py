@@ -27,12 +27,9 @@ from models import densenet_model
 from models import googlenet_model
 from models import inception_model
 from models import lenet_model
-from models.tf1_only import mobilenet_v2
-from models.tf1_only import nasnet_model
 from models import official_resnet_model
 from models import overfeat_model
 from models import resnet_model
-from models.tf1_only import ssd_model
 from models import trivial_model
 from models import vgg_model
 from models.experimental import deepspeech
@@ -81,9 +78,6 @@ _model_name_to_imagenet_model = {
     'resnet101_v2': resnet_model.create_resnet101_v2_model,
     'resnet152': resnet_model.create_resnet152_model,
     'resnet152_v2': resnet_model.create_resnet152_v2_model,
-    'nasnet': nasnet_model.NasnetModel,
-    'nasnetlarge': nasnet_model.NasnetLargeModel,
-    'mobilenet': mobilenet_v2.MobilenetModel,
     'ncf': official_ncf_model.NcfModel,
 }
 
@@ -104,13 +98,11 @@ _model_name_to_cifar_model = {
     'densenet40_k12': densenet_model.create_densenet40_k12_model,
     'densenet100_k12': densenet_model.create_densenet100_k12_model,
     'densenet100_k24': densenet_model.create_densenet100_k24_model,
-    'nasnet': nasnet_model.NasnetCifarModel,
     'vgg16': vgg_model.Vgg16Model_cifar10,
 }
 
 
 _model_name_to_object_detection_model = {
-    'ssd300': ssd_model.SSD300Model,
     'trivial': trivial_model.TrivialSSD300Model,
 }
 
