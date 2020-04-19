@@ -1817,26 +1817,26 @@ class BenchmarkCNN(object):
           log_fn('Horovod on:  %s' % self.params.horovod_device)
 
       # params['compression_device'] = self.params.compression_device
-      benchmark_info = self._get_params_info()
-      wandb.config.mode = self.mode
-      wandb.config.model = self.model.get_model_name()
-      wandb.config.dataset = benchmark_info['dataset_name']
-      wandb.config.batch_size = (self.batch_size * self.num_workers)
-      wandb.config.num_batches = self.num_batches
-      wandb.config.num_epochs = self.num_epochs
-      wandb.config.variables = self.params.variable_update
-      wandb.config.optimizer = self.params.optimizer
-      wandb.config.devices = benchmark_info['device_list']
-      wandb.config.horovod_on = self.params.horovod_device
-      wandb.config.comm_method = self.params.horovod_comm_method
-      wandb.config.bloom_on = self.params.horovod_bloom_on
-      wandb.config.horovod_compress_method = self.params.horovod_compress_method
-      wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-      wandb.config.fpr = self.params.fpr
-      wandb.config.code = self.params.code
-      wandb.config.encoding = self.params.encoding
-      wandb.config.policy = self.params.policy
-      wandb.config.false_positives_aware = self.params.false_positives_aware
+      # benchmark_info = self._get_params_info()
+      # wandb.config.mode = self.mode
+      # wandb.config.model = self.model.get_model_name()
+      # wandb.config.dataset = benchmark_info['dataset_name']
+      # wandb.config.batch_size = (self.batch_size * self.num_workers)
+      # wandb.config.num_batches = self.num_batches
+      # wandb.config.num_epochs = self.num_epochs
+      # wandb.config.variables = self.params.variable_update
+      # wandb.config.optimizer = self.params.optimizer
+      # wandb.config.devices = benchmark_info['device_list']
+      # wandb.config.horovod_on = self.params.horovod_device
+      # wandb.config.comm_method = self.params.horovod_comm_method
+      # wandb.config.bloom_on = self.params.horovod_bloom_on
+      # wandb.config.horovod_compress_method = self.params.horovod_compress_method
+      # wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
+      # wandb.config.fpr = self.params.fpr
+      # wandb.config.code = self.params.code
+      # wandb.config.encoding = self.params.encoding
+      # wandb.config.policy = self.params.policy
+      # wandb.config.false_positives_aware = self.params.false_positives_aware
       # wandb.config.stacked = self.params.stacked
       log_fn('==========')
 
