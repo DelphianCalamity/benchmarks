@@ -2090,10 +2090,13 @@ class BenchmarkCNN(object):
       horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
       horovod_bloom_verbosity = int(os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 'none'))
       horovod_bitstream_encoding = os.environ.get('HOROVOD_BITSTREAM_ENCODING', 'none')
+      bloom_logs_path = os.environ.get('HOROVOD_BLOOM_LOGS_PATH', "./logs")
 
       if horovod_compress_method in {"bloom"} and horovod_bloom_verbosity != 0:
-        cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
-        cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
+        import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
+        path = bloom_logs_path + "/" + str(hvd.rank())
+        cmd1 = "cat " + path + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
+        cmd2 = "cat " + path + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
         false_positives = int(p)
         p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
@@ -2101,8 +2104,8 @@ class BenchmarkCNN(object):
         wandb.log({"False_pos_accum": false_positives})
         wandb.log({"FPR": false_positives / total})
 
-        cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{policy_errors += $2} END {print policy_errors}'"
-        cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{total += $4} END {print total}'"
+        cmd1 = "cat " + path + "/*/*/policy_errors* | awk -F ' ' '{policy_errors += $2} END {print policy_errors}'"
+        cmd2 = "cat " + path + "/*/*/policy_errors* | awk -F ' ' '{total += $4} END {print total}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
         policy_errors = int(p)
         p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
