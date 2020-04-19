@@ -674,87 +674,6 @@ flags.DEFINE_string('benchmark_test_id', None,
                     'consumption, and does not have any impact within the '
                     'system.')
 
-### Ahmed - extra parameters for specifing the communication and compression methods
-# used in general framework based on horovod for compression
-# Default is using allreduce with no compression
-
-flags.DEFINE_enum('horovod_comm_method', 'allreduce',
-                  ('allreduce', 'broadcast', 'centralized', 'allgather'),
-                  'The method for communicating the variables used in hororvod: allreduce, '
-                  'broadcast, centralized, allgather')
-
-flags.DEFINE_enum('horovod_compress_method', 'none',
-                  ('none', 'fp16', 'randomk', 'topk', 'threshold', 'terngrad', 'qsgd', 'dgc', 'adaq',
-                   'signsgd', 'efsignsgd', 'signum', 'adas', 'onebit', 'powersgd', '8bit', 'natural', 'sketch', 'bloom'),
-                  'The method for compressing the variables used in hororvod: none, '
-                  'randomk, topk, threshold')
-
-flags.DEFINE_boolean('horovod_compress_memory', False, 'Whether to use memory for compression method')
-
-flags.DEFINE_boolean('horovod_compress_state', True, 'Whether to perform actual compression or not')
-
-flags.DEFINE_boolean('horovod_memory_debug', False, 'Whether to perform memory debug or not')
-
-flags.DEFINE_boolean('horovod_gradient_clipping', False,
-                     'Whether to use gradient clipping before apply the compression')
-
-flags.DEFINE_float('horovod_compress_ratio', 0.7,
-                   'Set the sparsification ratio')
-
-flags.DEFINE_float('horovod_threshold_val', 0.0001,
-                   'Set the threshold value')
-
-flags.DEFINE_integer('horovod_quantum_number', 256,
-                   'Set the quantum states for QSGD, default 256 states, minmum 1 state')
-
-flags.DEFINE_boolean('horovod_debug', False,
-                     'Whether to print out tensor size before communication')
-
-flags.DEFINE_string('compression_device', '',
-                    'set the device(/device:GPU:0,/device:GPU:1,/device:CPU:0) to run compression and decompression')
-
-flags.DEFINE_integer('bloom_size', None,
-                     'Size of bloom filter in case of bloom_* compression method')
-
-flags.DEFINE_string('horovod_bloom_on', "topk",
-                     'choice of underlying sparsification method for bloom_* compression method')
-
-flags.DEFINE_integer('hash_functions_number', None,
-                    'number of hash functions in case of bloom_* compression method')
-
-flags.DEFINE_float('fpr', None,
-                    'false positive rate for bloom filter compression method')
-
-flags.DEFINE_integer('bloom_verbosity', 0,
-                    'bloom filter operators logging frequency')
-
-flags.DEFINE_string('logs_path', None,
-                    'path to where bloom operators output is logged')
-
-flags.DEFINE_integer('logs_path_suffix', None,
-                    'suffix of path to where bloom operators output is logged')
-
-flags.DEFINE_string('hash_function', None,
-                    'choice of hash functions in case of bloom_* compression method')
-
-flags.DEFINE_string('code', None,
-                    'choice of integer compress method')
-
-flags.DEFINE_string('encoding', None,
-                    'integer or bitstream indices compression')
-
-flags.DEFINE_float('partitioning', None,
-                    'for adaptive bloom')
-
-flags.DEFINE_string('policy', "conflict_sets",
-                    'policy for selecting indices in bloom compresion method')
-
-flags.DEFINE_boolean('false_positives_aware', True,
-                    'false_positives_aware')
-
-flags.DEFINE_boolean('stacked', False,
-                    'two-layered bloom filter')
-
 flags.DEFINE_boolean('custom_learning_rate_schedule', False,
                      'linearly increase to 0.4 until 5 epochs, then decrease linearly to 0 until the end')
 
@@ -1913,15 +1832,12 @@ class BenchmarkCNN(object):
       wandb.config.bloom_on = self.params.horovod_bloom_on
       wandb.config.horovod_compress_method = self.params.horovod_compress_method
       wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-      wandb.config.k = self.params.hash_functions_number
-      wandb.config.m = self.params.bloom_size
       wandb.config.fpr = self.params.fpr
       wandb.config.code = self.params.code
       wandb.config.encoding = self.params.encoding
-      wandb.config.partitioning = self.params.partitioning
       wandb.config.policy = self.params.policy
       wandb.config.false_positives_aware = self.params.false_positives_aware
-      wandb.config.stacked = self.params.stacked
+      # wandb.config.stacked = self.params.stacked
       log_fn('==========')
 
 
@@ -2166,40 +2082,40 @@ class BenchmarkCNN(object):
         summary_writer.add_summary(summary, global_step)
       log_fn('Accuracy @ 1 = %.4f Accuracy @ 5 = %.4f [%d examples] time %.6f' %
              (accuracy_at_1, accuracy_at_5, total_eval_count, time.time()))
-
-      wandb.log({'eval_top_1_accuracy' : accuracy_at_1, 'eval_top_5_accuracy' : accuracy_at_5})
+      wandb.log({'eval_top_1_accuracy': accuracy_at_1, 'eval_top_5_accuracy': accuracy_at_5})
 
       ############################# log some statistics #############################
-      if self.params.horovod_compress_method in {"bloom"} and self.params.bloom_verbosity != 0:
+      horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
+      horovod_bloom_verbosity = os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 'none')
+      horovod_bitstream_encoding = os.environ.get('HOROVOD_BITSTREAM_ENCODING', 'none')
+
+      if horovod_compress_method in {"bloom"} and horovod_bloom_verbosity != 0:
         cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
         cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/fpr* | awk -F ' ' '{total += $4} END {print total}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        false_positives = int(p.split("\n")[0])
+        false_positives = int(p)
         p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        total = int(p.split("\n")[0])
-
+        total = int(p)
         wandb.log({"False_pos_accum": false_positives})
         wandb.log({"FPR": false_positives / total})
 
         cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{policy_errors += $2} END {print policy_errors}'"
         cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/policy_errors* | awk -F ' ' '{total += $4} END {print total}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        policy_errors = int(p.split("\n")[0])
+        policy_errors = int(p)
         p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        total = int(p.split("\n")[0])
-
+        total = int(p)
         wandb.log({"policy_errors": policy_errors})
         wandb.log({"rate_policy_errors": policy_errors / total})
 
-      if self.params.bloom_verbosity != 0 and (self.params.horovod_compress_method in {"bloom"} \
-              or (self.params.horovod_compress_method == "topk" and self.params.encoding is not None)):
+      if horovod_bloom_verbosity != 0 and (horovod_compress_method in {"bloom"} \
+              or (horovod_compress_method == "topk" and horovod_bitstream_encoding is not None)):
         cmd1 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
         cmd2 = "cat " + self.params.logs_path + str(self.params.logs_path_suffix) + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        initial_size = int(p.split("\n")[0])
+        initial_size = int(p)
         p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-        final_size = int(p.split("\n")[0])
-
+        final_size = int(p)
         wandb.log({"Init Bits": initial_size})
         wandb.log({"Final Bits": final_size})
         wandb.log({"ratio": (final_size / initial_size)})
@@ -2618,10 +2534,8 @@ class BenchmarkCNN(object):
         mlperf.logger.log(
             key=mlperf.tags.INPUT_SIZE,
             value=num_steps_since_last_eval * self.batch_size)
-        ###log_fn('Running evaluation at global_step {}'.format(
-            ###python_global_step))
-        log_fn('Running evaluation at global_step {} epoch {:.0f}'.format(
-            python_global_step, round(python_global_step * self.batch_size / self.dataset.num_examples_per_epoch('train'))))
+        log_fn('Running evaluation at global_step {}'.format(
+            python_global_step))
         accuracy_at_1, accuracy_at_5 = self._eval_once(
             sess, summary_writer, eval_graph_info.fetches,
             eval_graph_info.summary_op, eval_image_producer,
@@ -2684,16 +2598,6 @@ class BenchmarkCNN(object):
                       self.dataset.num_examples_per_epoch('train'))
     mlperf.logger.log_train_epochs(num_epochs_ran)
     wandb.log({"total_images_per_sec": images_per_sec})
-
-    # if self.params.bloom_verbosity != 0:
-    #     cmd1 = "cat " + self.params.logs_path + "/*/*/hashes* | awk -F ' ' '{false_positives += $2} END {print false_positives}'"
-    #     p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-    #     false_positives = int(p.split("\n")[0])
-    #     p = subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
-    #     total = int(p.split("\n")[0])
-    #
-    #     wandb.log({"False_pos_accum": false_positives}, step=step + 1)
-
     if image_producer is not None:
       image_producer.done()
     if eval_image_producer is not None:
@@ -3458,51 +3362,18 @@ class BenchmarkCNN(object):
           #print_once = False
 
         # All-reduce gradients using Horovod.
-        params = {}
-        params["compress_method"] = self.params.horovod_compress_method
-        params["comm_method"] = self.params.horovod_comm_method
-        params["use_memory"] = self.params.horovod_compress_memory
-        params["compress_ratio"] = self.params.horovod_compress_ratio
-        params["threshold_val"] = self.params.horovod_threshold_val
-        params["momentum"] = self.params.momentum
-        params["learning_rate"] = self.params.init_learning_rate
-        params["quantum_num"] = self.params.horovod_quantum_number
-        params["gradient_clipping"] = self.params.horovod_gradient_clipping
-        params['debug'] = self.params.horovod_debug
-        params['compression_device'] = self.params.compression_device
-        params['data_name'] = self.params.data_name
-        params['compress_state'] = self.params.horovod_compress_state
-        params['memory_debug'] = self.params.horovod_memory_debug
-        params['bloom_size'] = self.params.bloom_size
-        params['hash_functions_number'] = self.params.hash_functions_number
-        params['fpr'] = self.params.fpr
-        params['verbosity'] = self.params.bloom_verbosity
-        params['logs_path'] = self.params.logs_path
-        params['logs_path_suffix'] = self.params.logs_path_suffix
-        params['hash_function'] = self.params.hash_function
-        params['code'] = self.params.code
-        params['encoding'] = self.params.encoding
-        params['partitioning'] = self.params.partitioning
-        params['bloom_on'] = self.params.horovod_bloom_on
-        params['policy'] = self.params.policy
-        params['false_positives_aware'] = self.params.false_positives_aware
-        params['stacked'] = self.params.stacked
-        if params["compress_method"] in {"bloom"}:
-            if params['stacked']:
-                params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size 1", "#Hash Functions 1", "fpr_1",
-                                                              "Bloom Size 2", "#Hash Functions 2", "fpr 2"])
-            else:
-                params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
+        horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
+        if horovod_compress_method in {"bloom"}:
+            params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
             params['throughput_info'] = wandb.Table(columns=["Would-Send (Bits)", "Would-Send (Bytes)",
                                                              "Will-Send (Bits)", "Will-Send (Bytes)",
                                                              "Gain (Bits)", "Gain (Bytes)"])
-
         all_reduces = []
         for i, grad in enumerate(grads):
             params['logfile_suffix'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
-        if params["compress_method"] in {"bloom"}:
+        if horovod_compress_method in {"bloom"}:
             wandb.log({"Throughput_Info": params['throughput_info']})
             wandb.log({"Bloom_Config": params['bloom_config']})
 
@@ -3756,7 +3627,8 @@ def setup(params):
     # wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=False)
     # wandb.init(project="gradients-bitstream-compression", sync_tensorboard=False)
     # wandb.init(project="imagenet", sync_tensorboard=False)
-    wandb.init(project="densenet40_k12", sync_tensorboard=False)
+    wandb_project = os.environ['wandb_project']
+    wandb.init(project=wandb_project, sync_tensorboard=False, config=params._asdict())
   platforms_util.initialize(params, create_config_proto(params))
 
   if not params.job_name:
