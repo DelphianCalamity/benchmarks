@@ -3362,6 +3362,7 @@ class BenchmarkCNN(object):
           #print_once = False
 
         # All-reduce gradients using Horovod.
+        params = {}
         horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
         if horovod_compress_method in {"bloom"}:
             params['bloom_config'] = wandb.Table(columns=["K", "Bloom Size", "#Hash Functions", "fpr"])
