@@ -1817,26 +1817,28 @@ class BenchmarkCNN(object):
           log_fn('Horovod on:  %s' % self.params.horovod_device)
 
       # params['compression_device'] = self.params.compression_device
-      # benchmark_info = self._get_params_info()
-      # wandb.config.mode = self.mode
-      # wandb.config.model = self.model.get_model_name()
-      # wandb.config.dataset = benchmark_info['dataset_name']
-      # wandb.config.batch_size = (self.batch_size * self.num_workers)
-      # wandb.config.num_batches = self.num_batches
-      # wandb.config.num_epochs = self.num_epochs
-      # wandb.config.variables = self.params.variable_update
-      # wandb.config.optimizer = self.params.optimizer
-      # wandb.config.devices = benchmark_info['device_list']
-      # wandb.config.horovod_on = self.params.horovod_device
-      # wandb.config.comm_method = self.params.horovod_comm_method
+      benchmark_info = self._get_params_info()
+      wandb.config.mode = self.mode
+      wandb.config.model = self.model.get_model_name()
+      wandb.config.dataset = benchmark_info['dataset_name']
+      wandb.config.batch_size = (self.batch_size * self.num_workers)
+      wandb.config.num_batches = self.num_batches
+      wandb.config.num_epochs = self.num_epochs
+      wandb.config.variables = self.params.variable_update
+      wandb.config.optimizer = self.params.optimizer
+      wandb.config.devices = benchmark_info['device_list']
+      wandb.config.horovod_on = self.params.horovod_device
+
+      wandb.config.comm_method = os.environ.get('HOROVOD_COMM_METHOD')
       # wandb.config.bloom_on = self.params.horovod_bloom_on
-      # wandb.config.horovod_compress_method = self.params.horovod_compress_method
-      # wandb.config.horovod_compress_ratio = self.params.horovod_compress_ratio
-      # wandb.config.fpr = self.params.fpr
+      wandb.config.compress_memory = os.environ.get('HOROVOD_COMPRESS_MEMORY')
+      wandb.config.horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD')
+      wandb.config.horovod_compress_ratio = os.environ.get('HOROVOD_COMPRESS_RATIO')
+      wandb.config.fpr = os.environ.get('HOROVOD_BLOOM_FPR')
       # wandb.config.code = self.params.code
       # wandb.config.encoding = self.params.encoding
-      # wandb.config.policy = self.params.policy
-      # wandb.config.false_positives_aware = self.params.false_positives_aware
+      wandb.config.policy = os.environ.get('HOROVOD_BLOOM_POLICY')
+      wandb.config.false_positives_aware = os.environ.get('HOROVOD_BLOOM_FALSE_POSITIVES_AWARE')
       # wandb.config.stacked = self.params.stacked
       log_fn('==========')
 
@@ -3629,7 +3631,7 @@ def setup(params):
     # wandb.init(project="gradients-bitstream-compression", sync_tensorboard=False)
     # wandb.init(project="imagenet", sync_tensorboard=False)
     wandb_project = os.environ['wandb_project']
-    wandb.init(project=wandb_project, sync_tensorboard=False, config=params._asdict())
+    wandb.init(project=wandb_project, sync_tensorboard=False)
   platforms_util.initialize(params, create_config_proto(params))
 
   if not params.job_name:
