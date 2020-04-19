@@ -3370,7 +3370,7 @@ class BenchmarkCNN(object):
                                                              "Gain (Bits)", "Gain (Bytes)"])
         all_reduces = []
         for i, grad in enumerate(grads):
-            params['logfile_suffix'] = i
+            params['gradient_id'] = i
             all_reduces.append(hvd.allreduce(grad, average=False, device_dense=horovod_device, params=params))
         grads = all_reduces
         if horovod_compress_method in {"bloom"}:
