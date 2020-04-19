@@ -2086,7 +2086,7 @@ class BenchmarkCNN(object):
 
       ############################# log some statistics #############################
       horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
-      horovod_bloom_verbosity = os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 'none')
+      horovod_bloom_verbosity = int(os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 'none'))
       horovod_bitstream_encoding = os.environ.get('HOROVOD_BITSTREAM_ENCODING', 'none')
 
       if horovod_compress_method in {"bloom"} and horovod_bloom_verbosity != 0:
