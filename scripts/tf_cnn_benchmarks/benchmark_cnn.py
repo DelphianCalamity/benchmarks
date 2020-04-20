@@ -2088,7 +2088,7 @@ class BenchmarkCNN(object):
 
       ############################# log some statistics #############################
       horovod_compress_method = os.environ.get('HOROVOD_COMPRESS_METHOD', 'none')
-      horovod_bloom_verbosity = int(os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 'none'))
+      horovod_bloom_verbosity = int(os.environ.get('HOROVOD_BLOOM_VERBOSITY_FREQUENCY', 0))
       horovod_bitstream_encoding = os.environ.get('HOROVOD_BITSTREAM_ENCODING', 'none')
       bloom_logs_path = os.environ.get('HOROVOD_BLOOM_LOGS_PATH', "./logs")
       import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
@@ -2114,7 +2114,7 @@ class BenchmarkCNN(object):
         wandb.log({"rate_policy_errors": policy_errors / total})
 
       if horovod_bloom_verbosity != 0 and (horovod_compress_method in {"bloom"} \
-              or (horovod_compress_method == "topk" and horovod_bitstream_encoding is not None)):
+              or (horovod_compress_method == "topk" and horovod_bitstream_encoding != 'none')):
         cmd1 = "cat " + path + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
         cmd2 = "cat " + path + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
