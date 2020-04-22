@@ -3630,9 +3630,6 @@ def setup(params):
   if params.variable_update == 'horovod':
     import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
     hvd.init()
-    # wandb.init(project="gradients-compressions-bloom-filter", sync_tensorboard=False)
-    # wandb.init(project="gradients-bitstream-compression", sync_tensorboard=False)
-    # wandb.init(project="imagenet", sync_tensorboard=False)
     wandb_project = os.environ['wandb_project']
     wandb.init(project=wandb_project, sync_tensorboard=False)
   platforms_util.initialize(params, create_config_proto(params))
