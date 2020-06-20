@@ -2114,7 +2114,7 @@ class BenchmarkCNN(object):
         wandb.log({"rate_policy_errors": policy_errors / total})
 
       if horovod_bloom_verbosity != 0 and (horovod_compress_method in {"bloom"} \
-              or (horovod_compress_method == "topk" and horovod_bitstream_encoding != 'none')):
+              or (horovod_compress_method in {"topk", "randomk"} and horovod_bitstream_encoding != 'none')):
         cmd1 = "cat " + path + "/*/*/stats* | awk -F ' ' '{initial_size += $2} END {print initial_size}'"
         cmd2 = "cat " + path + "/*/*/stats* | awk -F ' ' '{final_size += $4} END {print final_size}'"
         p = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
